@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toko Sepatu Roda</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Toko Sepatu Roda</h1>
+        <nav>
+            <button class="category-btn active" data-category="all">Semua</button>
+            <button class="category-btn" data-category="classic-slalom">Classic Slalom</button>
+            <button class="category-btn" data-category="freestyle-slide">Freestyle Slide</button>
+            <button class="category-btn" data-category="speed-slalom">Speed Slalom</button>
+        </nav>
+    </header>
+
+    <main>
+        <div id="products-container" class="products-grid">
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
+                <h2>Selamat Datang di Toko Sepatu Roda</h2>
+                <p>Koleksi sepatu roda terbaik untuk Anda!</p>
+                <small style="color: #999; display: block; margin-top: 1rem;">
+                    Admin: Tekan Ctrl+Shift+A atau kunjungi /panel-admin.html
+                </small>
+            </div>
+        </div>
+    </main>
+
+    <!-- Admin access methods -->
+    <script>
+        // Method 1: Keyboard shortcut (Ctrl+Shift+A)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                e.preventDefault();
+                window.location.href = 'panel-admin.html';
+            }
+        });
+
+        // Method 2: URL hash detection for direct access
+        function checkAdminAccess() {
+            const currentPath = window.location.pathname;
+            const currentHash = window.location.hash;
+            
+            // Check if accessing via /panel-admin.html or /#admin
+            if (currentPath.includes('panel-admin') || currentHash === '#admin') {
+                window.location.href = 'panel-admin.html';
+            }
+        }
+
+        // Check on page load
+        checkAdminAccess();
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', checkAdminAccess);
+    </script>
+    <script src="js/main.js"></script>
+</body>
+</html>

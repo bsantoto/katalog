@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Toko Sepatu Roda</title>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1093.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-form { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); width: 100%; max-width: 400px; }
+        .login-form h2 { text-align: center; margin-bottom: 2rem; color: #333; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem; }
+        .checkbox-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: opacity 0.3s, background-color 0.3s; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; opacity: 0.7; }
+        .admin-panel { display: none; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; text-align: center; }
+        .header-actions { margin-top: 1rem; }
+        .header-actions a, .header-actions button { display: inline-block; text-decoration: none; color: white; padding: 0.5rem 1rem; border-radius: 5px; margin: 0 0.5rem; border: none; }
+        .back-btn { background: #95a5a6 !important; }
+        .logout-btn { background: #e74c3c !important; }
+        .admin-main { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+        .add-product-section, .products-list-section { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-bottom: 2rem; }
+        h2 { margin-bottom: 1.5rem; color: #333; }
+        #cancel-btn { background: #95a5a6; margin-left: 1rem; }
+        .image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .image-preview-item { position: relative; }
+        .image-preview-item img { width: 120px; height: 120px; object-fit: cover; border-radius: 5px; border: 2px solid #ddd; }
+        .remove-image-btn { position: absolute; top: -8px; right: -8px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .admin-product-item { background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .admin-product-info { flex: 1; min-width: 300px; }
+        .admin-product-actions { display: flex; gap: 0.5rem; }
+        .admin-product-actions button { padding: 0.5rem 1rem; font-size: 0.9rem; }
+        .admin-product-images { display: flex; gap: 5px; margin-top: 10px; }
+        .admin-product-images img { width: 70px; height: 70px; object-fit: cover; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="login-container" class="login-container">
+        <form id="login-form" class="login-form">
+            <h2>Login Admin Panel</h2>
+            <div class="form-group"><label for="username">Username:</label><input type="text" id="username" required value="admin"></div>
+            <div class="form-group"><label for="password">Password:</label><input type="password" id="password" required></div>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+    <div id="admin-panel" class="admin-panel">
+        <header>
+            <h1>Admin Panel - Toko Sepatu Roda</h1>
+            <div class="header-actions">
+                <a href="index.html" class="back-btn">Kembali ke Katalog</a>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </header>
+        <main class="admin-main">
+            <section class="add-product-section">
+                <h2>Tambah/Edit Produk</h2>
+                <form id="product-form">
+                    <input type="hidden" id="edit-id">
+                    <div class="form-group"><label for="product-name">Nama Produk:</label><input type="text" id="product-name" required></div>
+                    <div class="form-group"><label for="product-price">Harga (Rp):</label><input type="number" id="product-price" required min="0"></div>
+                    <div class="form-group"><label for="product-description">Deskripsi:</label><textarea id="product-description" rows="4" required></textarea></div>
+                    <div class="form-group">
+                        <label>Kategori:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="categories" value="classic-slalom"> Classic Slalom</label>
+                            <label><input type="checkbox" name="categories" value="freestyle-slide"> Freestyle Slide</label>
+                            <label><input type="checkbox" name="categories" value="speed-slalom"> Speed Slalom</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-images">Gambar Produk:</label>
+                        <input type="file" id="product-images" accept="image/*" multiple>
+                        <div id="image-preview" class="image-preview-container"></div>
+                    </div>
+                    <button type="submit" id="submit-btn">Tambah Produk</button>
+                    <button type="button" id="cancel-btn" style="display: none;">Batal</button>
+                </form>
+            </section>
+            <section class="products-list-section">
+                <h2>Daftar Produk</h2>
+                <div id="admin-products-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // =================================================================
+        // == KONFIGURASI DIGITALOCEAN SPACES - GANTI DENGAN DATA ANDA ==
+        // =================================================================
+        const SPACES_CONFIG = {
+            endpoint: 'sgp1.digitaloceanspaces.com', // Ganti 'sgp1' jika region Anda berbeda
+            accessKeyId: 'DO00GVVCMVCNWAUEUFD7',                 // Ganti dengan Access Key yang Anda buat
+            secretAccessKey: 'uBJcLk2dJFAOOIADkMAGAmiC0ssJqLCD2XWtGQUB/lQ',          // Ganti dengan Secret Key yang Anda buat
+            bucketName: 'pack'                       // Diisi dengan nama Space Anda
+        };
+        // =================================================================
+        // == PERINGATAN KEAMANAN PENTING                             ==
+        // =================================================================
+        // Menyimpan Secret Key di kode frontend seperti ini TIDAK AMAN 
+        // untuk aplikasi produksi karena bisa dilihat oleh siapa saja.
+        // Metode ini cocok untuk proyek pribadi atau untuk belajar.
+        // =================================================================
+
+        // Inisialisasi AWS SDK untuk DigitalOcean Spaces
+        AWS.config.update({
+            accessKeyId: SPACES_CONFIG.accessKeyId,
+            secretAccessKey: SPACES_CONFIG.secretAccessKey
+        });
+        const s3 = new AWS.S3({
+            endpoint: new AWS.Endpoint(SPACES_CONFIG.endpoint)
+        });
+
+        let products = [];
+        let editingId = null;
+        let currentImages = [];
+        let imagesToProcess = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                products = JSON.parse(localStorage.getItem('products')) || [];
+            } catch (e) {
+                products = [];
+            }
+            if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+                showAdminPanel();
+            }
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('product-form').addEventListener('submit', handleProductSubmit);
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('cancel-btn').addEventListener('click', resetForm);
+            document.getElementById('product-images').addEventListener('change', (e) => handleMultipleImages(e.target.files));
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            if (document.getElementById('username').value === 'admin' && document.getElementById('password').value === 'nagara1234') {
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                showAdminPanel();
+            }
+        }
+
+        function showAdminPanel() {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
+            renderProductsList();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('adminLoggedIn');
+            window.location.reload();
+        }
+
+        async function handleMultipleImages(files) {
+            const submitBtn = document.getElementById('submit-btn');
+            currentImages = []; // Array ini akan berisi URL dari DigitalOcean
+            updateImagePreview(); 
+            imagesToProcess = files.length;
+
+            if (imagesToProcess === 0) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = `Mengunggah ${imagesToProcess} gambar...`;
+
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) {
+                    imagesToProcess--;
+                    continue;
+                }
+                try {
+                    // Membuat nama file unik di dalam folder 'katalog'
+                    const fileName = `katalog/${Date.now()}-${file.name}`;
+                    const params = {
+                        Bucket: SPACES_CONFIG.bucketName,
+                        Key: fileName,
+                        Body: file,
+                        ACL: 'public-read',
+                        ContentType: file.type // <-- BARIS INI MEMPERBAIKI MASALAH DOWNLOAD
+                    };
+
+                    // Menggunakan .promise() untuk memakai async/await
+                    const data = await s3.upload(params).promise();
+                    
+                    // data.Location adalah URL publik dari gambar yang baru diunggah
+                    currentImages.push(data.Location);
+                    updateImagePreview(currentImages); // Tampilkan preview dari URL
+
+                } catch (error) {
+                    console.error("Gagal mengunggah file:", file.name, error);
+                    alert(`Gagal mengunggah ${file.name}. Cek console untuk detail.`);
+                } finally {
+                    imagesToProcess--;
+                    if (imagesToProcess <= 0) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = editingId ? 'Update Produk' : 'Tambah Produk';
+                    }
+                }
+            }
+        }
+
+        function updateImagePreview() {
+            const preview = document.getElementById('image-preview');
+            preview.innerHTML = '';
+            currentImages.forEach((imageUrl, index) => {
+                const item = document.createElement('div');
+                item.className = 'image-preview-item';
+                // Perhatikan, `src` sekarang langsung menggunakan URL
+                item.innerHTML = `<img src="${imageUrl}" alt="Preview"><button type="button" class="remove-image-btn" data-index="${index}">×</button>`;
+                item.querySelector('.remove-image-btn').addEventListener('click', (e) => {
+                    const idxToRemove = parseInt(e.target.dataset.index);
+                    currentImages.splice(idxToRemove, 1);
+                    updateImagePreview();
+                });
+                preview.appendChild(item);
+            });
+        }
+
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            if (imagesToProcess > 0) {
+                alert('Tunggu gambar selesai diunggah.');
+                return;
+            }
+            const name = document.getElementById('product-name').value.trim();
+            const price = parseInt(document.getElementById('product-price').value);
+            const description = document.getElementById('product-description').value.trim();
+            const categories = Array.from(document.querySelectorAll('input[name="categories"]:checked')).map(cb => cb.value);
+
+            if (!name || isNaN(price) || !description || categories.length === 0) {
+                alert('Mohon isi semua field dengan benar.');
+                return;
+            }
+            if (currentImages.length === 0 && !editingId) {
+                alert('Pilih minimal satu gambar untuk produk baru.');
+                return;
+            }
+            
+            const formData = { name, price, description, categories, images: currentImages };
+            saveProduct(formData);
+        }
+
+        function saveProduct(formData) {
+            // Fungsi ini tidak perlu diubah, karena sekarang hanya menyimpan URL yang ukurannya kecil
+            try {
+                if (editingId) {
+                    const index = products.findIndex(p => p.id === editingId);
+                    if (index !== -1) {
+                        if (formData.images.length === 0) formData.images = products[index].images || [];
+                        products[index] = { ...products[index], ...formData };
+                    }
+                } else {
+                    products.push({ ...formData, id: Date.now().toString() });
+                }
+                localStorage.setItem('products', JSON.stringify(products));
+                alert(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!');
+                resetForm();
+                renderProductsList();
+            } catch (error) {
+                // Error QuotaExceededError seharusnya tidak terjadi lagi
+                alert('Gagal menyimpan produk: ' + error.message);
+            }
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+            editingId = id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-description').value = product.description;
+            document.querySelectorAll('input[name="categories"]').forEach(cb => {
+                cb.checked = product.categories.includes(cb.value);
+            });
+            // currentImages sekarang berisi URL
+            currentImages = [...(product.images || [])];
+            updateImagePreview();
+            document.getElementById('submit-btn').textContent = 'Update Produk';
+            document.getElementById('cancel-btn').style.display = 'inline-block';
+        }
+
+        function deleteProduct(id) {
+            // Disarankan untuk juga menghapus file dari Space untuk menghemat biaya, 
+            // namun untuk saat ini kita biarkan sederhana.
+            if (confirm('Yakin ingin menghapus produk ini?')) {
+                products = products.filter(p => p.id !== id);
+                localStorage.setItem('products', JSON.stringify(products));
+                renderProductsList();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            editingId = null;
+            currentImages = [];
+            imagesToProcess = 0;
+            updateImagePreview();
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.textContent = 'Tambah Produk';
+            submitBtn.disabled = false;
+            document.getElementById('cancel-btn').style.display = 'none';
+        }
+
+        function renderProductsList() {
+            const container = document.getElementById('admin-products-list');
+            if (!container) return;
+            container.innerHTML = products.map(product => `
+                <div class="admin-product-item">
+                    <div class="admin-product-info">
+                        <h3>${product.name}</h3>
+                        <p>Harga: Rp ${product.price.toLocaleString('id-ID')}</p>
+                        <div class="admin-product-images">
+                            ${(product.images || []).slice(0, 3).map(imgUrl => `<img src="${imgUrl}" alt="${product.name}">`).join('')}
+                            ${(product.images || []).length > 3 ? `<span>+${(product.images || []).length - 3}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="admin-product-actions">
+                        <button onclick="editProduct('${product.id}')" style="background: #f39c12;">Edit</button>
+                        <button onclick="deleteProduct('${product.id}')" style="background: #e74c3c;">Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.editProduct = editProduct;
+        window.deleteProduct = deleteProduct;
+    </script>
+</body>
+</html>

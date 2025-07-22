@@ -1,0 +1,60 @@
+/* Error handling untuk gambar */
+.no-images {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    font-size: 1rem;
+    background: #f0f0f0;
+    border: 2px dashed #ddd;
+}
+
+.product-image img,
+.slide img,
+.detail-slide img {
+    transition: opacity 0.3s ease;
+}
+
+.product-image img[style*="display: none"],
+.slide img[style*="display: none"],
+.detail-slide img[style*="display: none"] {
+    opacity: 0;
+}
+
+/* Hapus admin link dari CSS */
+.admin-link {
+    display: none !important;
+}
+
+/* Perbaikan slideshow */
+.slideshow-container,
+.detail-slideshow-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.slide,
+.detail-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.slide.active,
+.detail-slide.active {
+    opacity: 1;
+}
+
+.slide img,
+.detail-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
